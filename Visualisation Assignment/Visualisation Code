@@ -1,0 +1,65 @@
+EWORK 21.03.2025
+########################################
+######################################## TASK TWO
+
+
+# Task 2: Read in the googlesheet data you and your colleagues created
+# into your DANmap object (with 11 background layers you created in Task 1).
+
+# Solution
+
+# Activating the libraries 
+library(tidyverse)
+library(googlesheets4)
+library(leaflet)
+
+gs4_deauth()
+OUTplaces <- read_sheet("https://docs.google.com/spreadsheets/d/1jrYTeZYiMM6EkhBiJAPgJigX6AewtvZO6Ae-IEJItAU/edit?usp=sharing",
+                     col_types = "cccnn", 
+                     range = "OUTLANDER2025") 
+View(OUTplaces)
+glimpse(OUTplaces)
+
+l_OUT <- leaflet() %>%  
+  setView(-4.5, 56.9, zoom = 6) %>% 
+  addTiles()
+
+l_OUT
+
+######################################## TASK THREE
+
+# Task 3: Can you cluster the points in Leaflet?
+# Hint: Google "clustering options in Leaflet in R"
+
+# Solution
+
+OUTmap <- leaflet() %>% 
+  addTiles() %>% 
+  addMarkers(lng = OUTplaces$Longitude, 
+             lat = OUTplaces$Latitude,
+             popup = paste(OUTplaces$Placename, "<br>", OUTplaces$Type))
+OUTmap
+saveWidget(OUTmap, "OUTmap.html", selfcontained = TRUE)
+
+######################################## TASK FOUR
+
+# Task 4: Look at the two maps (with and without clustering) and consider what
+# each is good for and what not.
+
+# Your brief answer
+
+# ANSWER: 
+# The one without cluster can be used for a general overview of the area. Though it does not display any direct information. 
+# The map with the clusters provides further insight to the coordinates that show the filming locations of the show Outlander, which were filmed in Scotland. 
+
+
+######################################## TASK FIVE
+
+# Task 5: Find out how to display the notes and classifications column in the map. 
+# Hint: Check online help in sites such as 
+# https://r-charts.com/spatial/interactive-maps-leaflet/#popup
+
+# Solution
+
+# Solution can be found in task 3, and this code did it: 
+#(popup = paste(OUTplaces$Placename, "<br>", OUTplaces$Type)
