@@ -1,0 +1,187 @@
+---
+title: "DAM Final Project"
+author: "Emmy-Sophie Herzog og Liv Belert Mortensen"
+date: "26-5-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(gridExtra)
+
+```
+
+## Marriage census in 1845
+
+```{r using readr for reading .csv file, and dplyr for inspecting the document}
+
+marriage_census <- read_csv2("data/census_1845_fullycleaned_final.csv.csv", is.na(NA))
+
+tibble(marriage_census)
+
+```
+## Investigating how many married and unmarried women are in the age group 20-30 in the 1845 census
+
+```{r summarizing marital status using group_by() and summarise() dplyr and tidyverse functions}
+
+marriage_summary <- marriage_census %>%
+  group_by(marital_status) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+print(marriage_summary)
+
+```
+
+```{r creating a bar plot of the marital status summary with ggplot2}
+
+ggplot(marriage_summary, aes(x = marital_status, y = count, fill = marital_status)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Number of Women by Marital Status (Aarhus, 1845)",
+       x = "Marital Status",
+       y = "Number of Women",
+       fill = "Marital Status") +
+  scale_y_continuous(breaks = seq(0, max(marriage_summary$count), 250)) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom")
+
+```
+
+
+## What is the ratio of married to unmarried women in the selected age group 20-30 in 1845?
+
+```{r calculating the ratio of married and unmarried women}
+
+married_count <- 954
+unmarried_count <- 3094
+
+married_to_unmarried_ratio <- married_count / unmarried_count
+
+married_to_unmarried_ratio
+
+round(married_to_unmarried_ratio, 2)
+
+```
+
+```{r creating a pie chart showing the ratio of marital status with the count from the chunk above with ggplot2}
+
+marital_data <- data.frame(
+  status = c("Married", "Unmarried"),
+  count = c(954, 3094))
+
+marital_data$percentage <- round(marital_data$count / sum(marital_data$count) * 100, 1)
+marital_data$label <- paste0(marital_data$status, " (", marital_data$percentage, "%)")
+
+pie_chart_ratio <- ggplot(marital_data, aes(x = "", y = count, fill = status)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5)) +
+  labs(title = "Ratio of Married to Unmarried Women (Aarhus, 1845)",
+       fill = "Marital Status") +
+  theme_void(base_size = 14)
+
+pie_chart_ratio
+
+```
+
+## Marital status in relation to occupation
+
+What are your expectations in this regard, and how does the data correspond to your expectations?
+Can you explore the reasons behind marriage age statistics / what kinds of women are getting married early vs late? (family background, status, etc.) 
+we suspect that there is a relation between being unmarried vs. married. Since poorer families could not afford to lose the extra help for farms, etc.
+
+```{r 7 most common occupations overall, calculating the top 7 occupations and creating a bar plot}
+
+top_occupations_all <- marriage_census %>%
+  count(occupation, sort = TRUE) %>%
+  slice_max(n, n = 7)
+
+plot_top_7_all <- ggplot(top_occupations_all, aes(x = reorder(occupation, n), y = n, fill = occupation)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Top 7 Occupations of Women ages 20-30 (Aarhus, 1845)",
+       x = "Occupation",
+       y = "Number of Women") +
+  theme_minimal(base_size = 12)
+
+plot_top_7_all
+
+```
+
+```{r top 7 occupations of unmarried women, filtering for unmarried unwomen and creating a bar plot}
+
+top_occupations_unmarried <- marriage_census %>%
+  filter(marital_status == "ugift") %>%
+  count(occupation, sort = TRUE) %>%
+  slice_max(n, n = 7)
+
+plot_top_7_unmarried <- ggplot(top_occupations_unmarried, aes(x = reorder(occupation, n), y = n, fill = occupation)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Top 7 Occupations of Unmarried Women ages 20-30 (Aarhus, 1845)",
+       x = "Occupation",
+       y = "Number of Women") +
+  theme_minimal(base_size = 11)
+
+plot_top_7_unmarried
+
+```
+
+```{r top 7 occupations of married women, filtering for married women and creating a bar plot}
+
+top_occupations_married <- marriage_census %>%
+  filter(marital_status == "gift") %>%
+  count(occupation, sort = TRUE) %>%
+  slice_max(n, n = 7)
+
+plot_top_7_married <- ggplot(top_occupations_married, aes(x = reorder(occupation, n), y = n, fill = occupation)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Top 7 Occupations of Married Women Ages 20-30 (Aarhus, 1845)",
+       x = "Occupation",
+       y = "Number of Women") +
+  theme_minimal(base_size = 11)
+
+plot_top_7_married
+
+```
+
+```{r using gridExtra to show the top occupations side by side for a nice visual}
+
+grid_visuals <- grid.arrange(plot_top_7_married, plot_top_7_unmarried, ncol = 1)
+
+```
+
+
+## Average age of marriage, and age distribution for married women in their 20s in Aarhus in 1845
+
+```{r filtering for married women and counting for each age, calculating the average and creating a bar plot with dplyt and ggplot2}
+
+age_distribution <- marriage_census %>%
+  filter(marital_status == "gift") %>%
+  count(age)
+
+average_age <- marriage_census %>%
+  filter(marital_status == "gift") %>%
+  summarise(avg_age = mean(age, na.rm = TRUE)) %>%
+  pull(avg_age)
+
+average_age_and_marriage_distribution <- ggplot(age_distribution, aes(x = age, y = n)) +
+  geom_col(fill = "skyblue") +
+  geom_vline(xintercept = average_age, color = "red", linetype = "dashed", linewidth = 1) +
+  annotate("text", x = average_age, y = max(age_distribution$n), 
+           label = paste("Avg Age:", round(average_age, 1)), 
+           vjust = -0.5, hjust = -0.1, color = "red", size = 4) +
+  labs(title = "Marriage Age Distribution With Average Age of Marriage",
+       x = "Age",
+       y = "Number of Married Women Ages 20-30") +
+  theme_minimal(base_size = 12)
+
+average_age_and_marriage_distribution
+
+```
